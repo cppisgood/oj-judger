@@ -1,0 +1,33 @@
+syntax = "proto3";
+service Judger { rpc Judge(JudgeRequest) returns (JudgeReply); }
+
+message JudgeRequest {
+  string problem_id = 1;
+  string src_code = 2;
+  string language = 3;
+
+  uint64 cpu_time_limit = 4; // ms
+  uint64 memory_limit = 5;   // byte
+
+  bool special_judge = 6; // optional
+  string spj_code = 7;    // optional
+}
+
+message JudgeResult {
+  uint32 test_case = 1;
+  uint64 result = 2;
+  uint64 cpu_time = 3;
+  uint64 memory = 4;
+  
+  string error_msg = 5; // eg: kill cause by calling forbidden syscall
+}
+
+message JudgeReply {
+  string error_msg = 1; // optional eg: no such language
+
+  uint64 result = 2;
+  uint64 cpu_time = 3;
+  uint64 memory = 4;
+
+  repeated JudgeResult details = 5; // optional
+}
