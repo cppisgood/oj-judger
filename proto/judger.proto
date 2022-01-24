@@ -1,4 +1,6 @@
 syntax = "proto3";
+package judger;
+
 service Judger { rpc Judge(JudgeRequest) returns (JudgeReply); }
 
 message JudgeRequest {
@@ -6,11 +8,15 @@ message JudgeRequest {
   string src_code = 2;
   string language = 3;
 
-  uint64 cpu_time_limit = 4; // ms
-  uint64 memory_limit = 5;   // byte
+  uint64 cpu_time_limit = 4;  // ms
+  uint64 real_time_limit = 5; // ms
+  uint64 memory_limit = 6;    // kbyte
 
-  bool special_judge = 6; // optional
-  string spj_code = 7;    // optional
+  bool special_judge = 7; // optional
+  string spj_code = 8;    // optional
+  string spj_language = 9;
+
+  string data_last_modify = 10;
 }
 
 message JudgeResult {
@@ -18,7 +24,7 @@ message JudgeResult {
   uint64 result = 2;
   uint64 cpu_time = 3;
   uint64 memory = 4;
-  
+
   string error_msg = 5; // eg: kill cause by calling forbidden syscall
 }
 

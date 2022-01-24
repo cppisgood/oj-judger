@@ -1,26 +1,24 @@
 use config::{Config, File};
-use lazy_static::lazy_static;
-use std::{
-    error::Error,
-    sync::{RwLock, RwLockReadGuard},
-};
+use once_cell::sync::OnceCell;
+use std::sync::{Once, RwLock, RwLockReadGuard};
 
-lazy_static! {
-    pub static ref SETTINGS: RwLock<Config> = RwLock::new(Config::default());
-}
+static CONFIG: OnceCell<RwLock<Config>> = OnceCell::new();
+static CONFIG_INIT: Once = Once::new();
 
-pub fn config_init() -> Result<(), Box<dyn Error>> {
-    let mut settings = SETTINGS.write()?;
-    settings.merge(vec![File::with_name("config/config.toml")])?;
+pub fn get_config() -> RwLockReadGuard<'static, Config> {
+    CONFIG_INIT.call_once(|| {
+        let mut config = Config::default();
+        config
+            .merge(vec![File::with_name("config/config.toml")])
+            .unwrap();
+        CONFIG.set(RwLock::new(config)).unwrap();
+    });
 
-    Ok(())
-}
-
-pub fn get_config<'a>() -> RwLockReadGuard<'a, Config> {
-    SETTINGS.read().expect("get RwLockReadGuard failed")
+    CONFIG.get().unwrap().read().unwrap()
 }
 
 #[test]
 fn test_config_init() {
-    config_init().unwrap();
+    println!("{:?}", get_config().get_table("sandbox"));
+    println!("{:?}", get_config().get_str("sandbox.jail_path").unwrap());
 }

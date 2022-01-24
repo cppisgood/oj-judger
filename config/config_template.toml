@@ -1,2 +1,5 @@
 [sandbox]
 exec_chroot_path = "/exec/chroot/path"
+
+[data]
+data_path = "data/"
