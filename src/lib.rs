@@ -1,7 +1,9 @@
 pub mod cgroups;
+pub mod compare;
 pub mod compiler;
 pub mod config;
 pub mod data;
+pub mod judge;
 pub mod languages;
 pub mod os;
 pub mod proto;
@@ -9,4 +11,3 @@ pub mod run_command;
 pub mod seccomp;
 pub mod timer;
 pub mod utils;
-pub mod compare;

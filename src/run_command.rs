@@ -1,7 +1,7 @@
 use ipc_channel::ipc;
 use nix::{
     sys::resource::{self, Resource},
-    unistd::{self, ForkResult, Pid, Uid},
+    unistd::{self, ForkResult, Pid, Uid}, sched::{self, CloneFlags},
 };
 use std::{
     error::Error,
@@ -10,9 +10,10 @@ use std::{
     mem::MaybeUninit,
     os::unix::prelude::AsRawFd,
     process, thread,
-    time::{Duration, SystemTime},
+    time::{Duration, SystemTime}, env,
 };
 use syscallz::Syscall;
+use tracing::debug;
 
 use crate::{cgroups::Cgroup, os, seccomp};
 
@@ -27,6 +28,7 @@ pub struct RunOption<'a> {
 
     pub args: Option<Vec<&'a str>>,
     pub jail_path: Option<&'a str>,
+    pub exec_path: Option<&'a str>,
     pub uid: Option<u32>,
     pub process_limit: Option<u32>,
     pub memory_limit: Option<u64>,    // kbyte
@@ -43,6 +45,7 @@ impl<'a> RunOption<'a> {
             cmd,
             args: None,
             jail_path: None,
+            exec_path: None,
             uid: None,
             process_limit: None,
             memory_limit: None,
@@ -129,6 +132,11 @@ impl<'a> Command<'a> {
         self
     }
 
+    pub fn exec_path(&mut self, exec_path: &'a str) -> &mut Self {
+        self.option.exec_path = Some(exec_path);
+        self
+    }
+
     pub fn process(&mut self, process: u32) -> &mut Self {
         self.option.process_limit = Some(process);
         self
@@ -173,6 +181,9 @@ impl<'a> Command<'a> {
         let (tx_cgroup, rx_cgroup) = ipc::channel()?;
         match unsafe { unistd::fork()? } {
             ForkResult::Child => {
+                // new a network namspace for child process
+                sched::unshare(CloneFlags::CLONE_NEWNET)?;
+
                 unistd::setpgid(Pid::from_raw(0), Pid::from_raw(0))?;
                 if let Some(fd) = self.option.stdin_redirect {
                     unistd::dup2(fd as i32, io::stdin().as_raw_fd())?;
@@ -186,6 +197,9 @@ impl<'a> Command<'a> {
                 if let Some(jail_path) = &self.option.jail_path {
                     os::chroot(jail_path)?;
                 }
+                if let Some(exec_path) = &self.option.exec_path {
+                    env::set_current_dir(exec_path)?;
+                }
                 if let Some(uid) = self.option.uid {
                     unistd::setuid(Uid::from_raw(uid))?;
                 }
@@ -196,17 +210,22 @@ impl<'a> Command<'a> {
                     let time = Some((cpu_time / 1000).max(1));
                     resource::setrlimit(Resource::RLIMIT_CPU, time, time)?;
                 }
-                let args: Vec<CString> = match &self.option.args {
-                    Some(args) => args
-                        .into_iter()
-                        .map(|s| CString::new(*s).unwrap())
-                        .collect::<Vec<CString>>(),
-                    None => vec![],
-                };
+                // let args = {
+                //     let mut first = vec![CString::new(self.option.cmd)?];
+                    let args = &mut match &self.option.args {
+                        Some(args) => args
+                            .into_iter()
+                            .map(|s| CString::new(*s).unwrap())
+                            .collect::<Vec<CString>>(),
+                        None => vec![],
+                    };
+                    // first.append(args);
+                    // first
+                // };
                 unistd::execv::<CString>(CString::new(self.option.cmd)?.as_c_str(), &args)?;
             }
             ForkResult::Parent { child } => {
-                println!("{}", child);
+                debug!("{}", child);
                 let cg = {
                     let memory_limit = match self.option.memory_limit {
                         Some(memory) => Some(memory * 1024),
@@ -224,7 +243,8 @@ impl<'a> Command<'a> {
                         thread::sleep(Duration::from_millis(real_time));
                         process::Command::new("kill")
                             .args(["-9", "--", &format!("-{}", child.as_raw())])
-                            .spawn()
+                            .output()
+                            // .spawn()
                             .unwrap();
                     });
                 }
@@ -236,7 +256,7 @@ impl<'a> Command<'a> {
                     libc::wait4(child.as_raw(), status.as_mut_ptr(), 0, usage.as_mut_ptr());
                     (status.assume_init(), usage.assume_init())
                 };
-                println!("{:?}", usage);
+                debug!("{:?}", usage);
                 let real_time = now.elapsed()?.as_millis() as u64;
                 let cpu_time =
                     (usage.ru_utime.tv_sec * 1000 + usage.ru_utime.tv_usec / 1000) as u64;
