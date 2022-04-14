@@ -78,6 +78,7 @@ impl Display for JudgeStatus {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct JudgeResult {
+    submission_id: String,
     status: JudgeStatus,
     exit_code: u32,
     cpu_time: u64,
@@ -101,6 +102,7 @@ impl From<SingleJudgeStatus> for JudgeStatus {
 
 impl JudgeResult {
     fn new(
+        submission_id: String,
         status: JudgeStatus,
         exit_code: u32,
         cpu_time: u64,
@@ -110,6 +112,7 @@ impl JudgeResult {
         msg: Option<String>,
     ) -> Self {
         JudgeResult {
+            submission_id,
             status,
             exit_code,
             cpu_time,
@@ -152,6 +155,7 @@ pub fn judge(judge_info: JudgeInfo) -> JudgeResult {
         if res.result != ExecResult::Ok {
             let compile_error_msg = fs::read_to_string(&output_file_path).unwrap();
             return JudgeResult::new(
+                judge_info.submission_id.clone(),
                 JudgeStatus::CompileError,
                 0,
                 0,
@@ -249,6 +253,7 @@ pub fn judge(judge_info: JudgeInfo) -> JudgeResult {
         let status = JudgeStatus::from(single_judge_result.status);
         if status != JudgeStatus::Accepted {
             return JudgeResult::new(
+                judge_info.submission_id.clone(),
                 status,
                 single_judge_result.exit_code,
                 max_cpu_time,
@@ -260,6 +265,7 @@ pub fn judge(judge_info: JudgeInfo) -> JudgeResult {
         }
     }
     JudgeResult::new(
+        judge_info.submission_id.clone(),
         JudgeStatus::Accepted,
         0,
         max_cpu_time,
@@ -271,6 +277,7 @@ pub fn judge(judge_info: JudgeInfo) -> JudgeResult {
 }
 
 pub async fn judge_handler(Json(judge_info): Json<JudgeInfo>) -> impl IntoResponse {
+    let submission_id = judge_info.submission_id.clone();
     let res = panic::catch_unwind(|| judge(judge_info));
     match res {
         Ok(res) => (StatusCode::OK, utils::gen_response(0, res)),
@@ -280,7 +287,16 @@ pub async fn judge_handler(Json(judge_info): Json<JudgeInfo>) -> impl IntoRespon
                 StatusCode::OK,
                 utils::gen_response(
                     0,
-                    JudgeResult::new(JudgeStatus::SystemError, 0, 0, 0, 0, vec![], None),
+                    JudgeResult::new(
+                        submission_id,
+                        JudgeStatus::SystemError,
+                        0,
+                        0,
+                        0,
+                        0,
+                        vec![],
+                        None,
+                    ),
                 ),
             )
         }
