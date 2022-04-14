@@ -1,3 +1,4 @@
+use std::fmt::Display;
 use std::fs::File;
 use std::io::Write;
 use std::os::unix::prelude::AsRawFd;
@@ -66,6 +67,12 @@ pub enum JudgeStatus {
     TimeLimitExceeded,
     MemoryLimitExceeded,
     SystemError,
+}
+
+impl Display for JudgeStatus {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self)
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize)]
