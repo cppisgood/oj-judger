@@ -78,14 +78,14 @@ impl Display for JudgeStatus {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct JudgeResult {
-    submission_id: String,
-    status: JudgeStatus,
-    exit_code: u32,
-    cpu_time: u64,
-    real_time: u64,
-    memory: u64,
-    results: Vec<SingleJudgeResult>,
-    msg: Option<String>,
+    pub submission_id: String,
+    pub status: JudgeStatus,
+    pub exit_code: u32,
+    pub cpu_time: u64,
+    pub real_time: u64,
+    pub memory: u64,
+    pub results: Vec<SingleJudgeResult>,
+    pub msg: Option<String>,
 }
 
 impl From<SingleJudgeStatus> for JudgeStatus {
