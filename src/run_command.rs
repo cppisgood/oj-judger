@@ -210,8 +210,6 @@ impl<'a> Command<'a> {
                     let time = Some((cpu_time / 1000).max(1));
                     resource::setrlimit(Resource::RLIMIT_CPU, time, time)?;
                 }
-                // let args = {
-                //     let mut first = vec![CString::new(self.option.cmd)?];
                     let args = &mut match &self.option.args {
                         Some(args) => args
                             .into_iter()
@@ -219,9 +217,6 @@ impl<'a> Command<'a> {
                             .collect::<Vec<CString>>(),
                         None => vec![],
                     };
-                    // first.append(args);
-                    // first
-                // };
                 unistd::execv::<CString>(CString::new(self.option.cmd)?.as_c_str(), &args)?;
             }
             ForkResult::Parent { child } => {

@@ -13,6 +13,9 @@ use crate::{compare, config, run_command::Command, utils};
 #[derive(Debug, Deserialize, Serialize)]
 pub struct JudgeInfo {
     pub submission_id: String,
+    pub compile_cmd: Option<String>,
+    pub run_cmd: String,
+    pub src_file_name: String,
 
     pub language: String,
     pub code: String,
@@ -110,7 +113,7 @@ impl JudgeResult {
     }
 }
 
-fn judge(judge_info: JudgeInfo) -> JudgeResult {
+pub fn judge(judge_info: JudgeInfo) -> JudgeResult {
     debug!("{:?}", judge_info);
     let config = config::get_config();
 
@@ -118,18 +121,14 @@ fn judge(judge_info: JudgeInfo) -> JudgeResult {
 
     // write code to file
     {
-        let src_file_name = config
-            .get_string(&format!("language.{}.src_file_name", judge_info.language))
-            .unwrap();
+        let src_file_name = judge_info.src_file_name;
         let src_file_path = format!("{}{}", jail_path, src_file_name);
         let mut src_file = File::create(&src_file_path).unwrap();
         write!(src_file, "{}", judge_info.code).unwrap();
     }
 
     // compile src code if need
-    if let Ok(compile_cmd) =
-        config.get_string(&format!("language.{}.compile_cmd", judge_info.language))
-    {
+    if let Some(compile_cmd) = judge_info.compile_cmd {
         let args: Vec<_> = compile_cmd.split(" ").collect();
         let cmd_path = args[0];
         let output_file_path = config.get_string("judger.compile_output_file").unwrap();
@@ -157,9 +156,7 @@ fn judge(judge_info: JudgeInfo) -> JudgeResult {
     }
 
     // run code
-    let run_cmd = config
-        .get_string(&format!("language.{}.run_cmd", judge_info.language))
-        .unwrap();
+    let run_cmd = judge_info.run_cmd;
     let args: Vec<_> = run_cmd.split(" ").collect();
     let cmd_path = args[0];
     let data_path = {
@@ -167,6 +164,7 @@ fn judge(judge_info: JudgeInfo) -> JudgeResult {
         format!("{}{}", data_path, judge_info.problem_id)
     };
     // filter *.in file only
+    debug!("{}", data_path);
     let paths = fs::read_dir(&data_path)
         .unwrap()
         .filter_map(Result::ok)
@@ -187,6 +185,7 @@ fn judge(judge_info: JudgeInfo) -> JudgeResult {
 
         let uid = config.get_int("judger.exec_user_uid").unwrap();
 
+        debug!("cmd_path: {}", cmd_path);
         let res = Command::new(cmd_path)
             .args(args.clone())
             .uid(uid as u32)
