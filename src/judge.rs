@@ -62,11 +62,12 @@ impl SingleJudgeResult {
 pub enum JudgeStatus {
     Accepted,
     CompileError,
-    WrongAnswer,
-    RuntimeError,
-    TimeLimitExceeded,
+    Judging,
     MemoryLimitExceeded,
+    RuntimeError,
     SystemError,
+    TimeLimitExceeded,
+    WrongAnswer,
 }
 
 impl Display for JudgeStatus {
