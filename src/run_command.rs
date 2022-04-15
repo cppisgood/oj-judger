@@ -269,13 +269,15 @@ impl<'a> Command<'a> {
                         res = ExecResult::MemoryLimitExceeded;
                     }
                 }
+                // TODO move to config file
+                let abs = 0;
                 if let Some(real_time_limit) = self.option.real_time_limit {
-                    if real_time > real_time_limit {
+                    if real_time + abs > real_time_limit {
                         res = ExecResult::RealTimeLimitExceeded;
                     }
                 }
                 if let Some(cpu_time_limit) = self.option.cpu_time_limit {
-                    if cpu_time > cpu_time_limit {
+                    if cpu_time + abs > cpu_time_limit {
                         res = ExecResult::CpuTimeLimitExceeded;
                     }
                 }
