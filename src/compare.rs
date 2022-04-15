@@ -1,4 +1,4 @@
-use std::{fs, error::Error};
+use std::{error::Error, fs};
 
 pub struct CompareOption {
     allow_trailing_space: bool,
@@ -22,7 +22,7 @@ fn compare_two_str(str_a: &str, str_b: &str, compare_option: Option<CompareOptio
     } else {
         (str_a, str_b)
     };
-    
+
     let mut iter_a = str_a.split('\n');
     let mut iter_b = str_b.split('\n');
 
@@ -32,7 +32,7 @@ fn compare_two_str(str_a: &str, str_b: &str, compare_option: Option<CompareOptio
         |a: &str, b: &str| a == b
     };
 
-    let mut res =  true;
+    let mut res = true;
     while let Some(a) = iter_a.next() {
         if let Some(b) = iter_b.next() {
             res &= cmp(a, b);
@@ -46,9 +46,11 @@ fn compare_two_str(str_a: &str, str_b: &str, compare_option: Option<CompareOptio
     res
 }
 
-
-
-pub fn compare_two_file(file_a: &str, file_b: &str, compare_option: Option<CompareOption>) -> Result<bool, Box<dyn Error>> {
+pub fn compare_two_file(
+    file_a: &str,
+    file_b: &str,
+    compare_option: Option<CompareOption>,
+) -> Result<bool, Box<dyn Error>> {
     let file_a = fs::read_to_string(file_a)?;
     let file_b = fs::read_to_string(file_b)?;
     Ok(compare_two_str(&file_a, &file_b, compare_option))
@@ -61,5 +63,4 @@ fn test() {
     println!("{:?}", a);
     let a: Vec<_> = s.split("\n").collect();
     println!("{:?}", a);
-
 }

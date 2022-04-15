@@ -1,16 +1,18 @@
 use ipc_channel::ipc;
 use nix::{
+    sched::{self, CloneFlags},
     sys::resource::{self, Resource},
-    unistd::{self, ForkResult, Pid, Uid}, sched::{self, CloneFlags},
+    unistd::{self, ForkResult, Pid, Uid},
 };
 use std::{
+    env,
     error::Error,
     ffi::CString,
     io,
     mem::MaybeUninit,
     os::unix::prelude::AsRawFd,
     process, thread,
-    time::{Duration, SystemTime}, env,
+    time::{Duration, SystemTime},
 };
 use syscallz::Syscall;
 use tracing::debug;
@@ -210,13 +212,13 @@ impl<'a> Command<'a> {
                     let time = Some((cpu_time / 1000).max(1));
                     resource::setrlimit(Resource::RLIMIT_CPU, time, time)?;
                 }
-                    let args = &mut match &self.option.args {
-                        Some(args) => args
-                            .into_iter()
-                            .map(|s| CString::new(*s).unwrap())
-                            .collect::<Vec<CString>>(),
-                        None => vec![],
-                    };
+                let args = &mut match &self.option.args {
+                    Some(args) => args
+                        .into_iter()
+                        .map(|s| CString::new(*s).unwrap())
+                        .collect::<Vec<CString>>(),
+                    None => vec![],
+                };
                 unistd::execv::<CString>(CString::new(self.option.cmd)?.as_c_str(), &args)?;
             }
             ForkResult::Parent { child } => {
