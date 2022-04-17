@@ -2,6 +2,7 @@ use std::fmt::Display;
 use std::fs::File;
 use std::io::Write;
 use std::os::unix::prelude::AsRawFd;
+use std::str::FromStr;
 use std::{fs, panic};
 
 use axum::{http::StatusCode, response::IntoResponse, routing, Json, Router};
@@ -73,6 +74,24 @@ pub enum JudgeStatus {
 impl Display for JudgeStatus {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{:?}", self)
+    }
+}
+
+impl FromStr for JudgeStatus {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "Accepted"=> Ok(JudgeStatus::Accepted),
+            "CompileError"=> Ok(JudgeStatus::CompileError),
+            "Judging"=> Ok(JudgeStatus::Judging),
+            "MemoryLimitExceeded"=> Ok(JudgeStatus::MemoryLimitExceeded),
+            "RuntimeError"=> Ok(JudgeStatus::RuntimeError),
+            "SystemError"=> Ok(JudgeStatus::SystemError),
+            "TimeLimitExceeded"=> Ok(JudgeStatus::TimeLimitExceeded),
+            "WrongAnswer"=> Ok(JudgeStatus::WrongAnswer),
+            _ => Err(())
+        }
     }
 }
 

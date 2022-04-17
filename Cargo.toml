@@ -1,6 +1,6 @@
 [package]
 name = "oj-judger"
-version = "0.1.2"
+version = "0.1.3"
 authors = ["zmm <2191482447@qq.com>"]
 edition = "2021"
 
