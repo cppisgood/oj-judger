@@ -82,15 +82,15 @@ impl FromStr for JudgeStatus {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
-            "Accepted"=> Ok(JudgeStatus::Accepted),
-            "CompileError"=> Ok(JudgeStatus::CompileError),
-            "Judging"=> Ok(JudgeStatus::Judging),
-            "MemoryLimitExceeded"=> Ok(JudgeStatus::MemoryLimitExceeded),
-            "RuntimeError"=> Ok(JudgeStatus::RuntimeError),
-            "SystemError"=> Ok(JudgeStatus::SystemError),
-            "TimeLimitExceeded"=> Ok(JudgeStatus::TimeLimitExceeded),
-            "WrongAnswer"=> Ok(JudgeStatus::WrongAnswer),
-            _ => Err(())
+            "Accepted" => Ok(JudgeStatus::Accepted),
+            "CompileError" => Ok(JudgeStatus::CompileError),
+            "Judging" => Ok(JudgeStatus::Judging),
+            "MemoryLimitExceeded" => Ok(JudgeStatus::MemoryLimitExceeded),
+            "RuntimeError" => Ok(JudgeStatus::RuntimeError),
+            "SystemError" => Ok(JudgeStatus::SystemError),
+            "TimeLimitExceeded" => Ok(JudgeStatus::TimeLimitExceeded),
+            "WrongAnswer" => Ok(JudgeStatus::WrongAnswer),
+            _ => Err(()),
         }
     }
 }
@@ -196,10 +196,21 @@ pub fn judge(judge_info: JudgeInfo) -> JudgeResult {
     };
     // filter *.in file only
     debug!("{}", data_path);
-    let paths = fs::read_dir(&data_path)
-        .unwrap()
-        .filter_map(Result::ok)
-        .filter(|path| path.path().extension().unwrap() == "in");
+    let paths = fs::read_dir(&data_path);
+    let paths = match paths {
+        Ok(paths) => paths.filter_map(Result::ok)
+        .filter(|path| path.path().extension().unwrap() == "in"),
+        Err(_) => return JudgeResult::new(
+            judge_info.submission_id.clone(),
+            JudgeStatus::SystemError,
+            0,
+            0,
+            0,
+            0,
+            vec![],
+            Some("data not found".to_string()),
+        )
+    };
     let mut results: Vec<SingleJudgeResult> = Vec::new();
     let mut max_cpu_time = 0;
     let mut max_real_time = 0;
